@@ -393,8 +393,8 @@ function parseYtItem(i) {
   };
 }
 
-// Titles that indicate non-song content
-const NON_MUSIC_PATTERN = /\b(full album|complete album|full concert|live concert|live tour|official video|music video|lyric video|lyrics video|musikvideo|video oficial|teaser|trailer|behind the scenes|making of|documentary|interview|podcast|dj set|megamix|nonstop|non-?stop mix|\d+\s*hour|\bvlog\b|hd video|official film)\b/i;
+// Titles that indicate non-song content (kept minimal to avoid false positives)
+const NON_MUSIC_PATTERN = /\b(full album|complete album|full concert|live concert|live tour|behind the scenes|making of|documentary|interview|podcast|dj set|megamix|\d+\s*hour|\bvlog\b)\b/i;
 
 // ─── Admin: Direct YouTube Search (for catalog management) ───
 app.get('/api/yt/search', (req, res) => {
@@ -438,7 +438,7 @@ app.get('/api/yt/search-music', async (req, res) => {
     // Step 1: Keep only songs (60s – 600s, no videos/albums/mixes)
     const songsOnly = unique.filter(i => {
       if (!i.duration) return false;
-      if (i.duration < 60 || i.duration > 600) return false;
+      if (i.duration < 45 || i.duration > 720) return false;
       if (NON_MUSIC_PATTERN.test(i.title || '')) return false;
       return true;
     });
