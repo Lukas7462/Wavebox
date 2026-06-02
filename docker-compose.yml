@@ -1,0 +1,14 @@
+services:
+  wavebox:
+    build: .
+    container_name: wavebox
+    ports:
+      - "3009:4000"
+    volumes:
+      - wavebox-data:/data
+    environment:
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+    restart: unless-stopped
+
+volumes:
+  wavebox-data:
