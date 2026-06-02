@@ -580,64 +580,39 @@ app.delete('/api/tracks/:id/yt', (req, res) => {
 });
 
 // ─── Stream any YouTube audio (no catalog restriction) ───
-// Helper: get CDN URL via yt-dlp (with caching), tries android then ios client
-function getCdnUrl(ytId) {
-  const cached = streamCache[ytId];
-  if (cached && cached.expires > Date.now()) return Promise.resolve(cached.url);
-  const tryClient = (client) => new Promise((resolve, reject) => {
-    execFile('yt-dlp', [
-      '-f', 'bestaudio[ext=m4a]/bestaudio/best',
-      '-g', '--no-warnings', '--no-playlist',
-      '--extractor-args', `youtube:player_client=${client}`,
-      `https://www.youtube.com/watch?v=${ytId}`
-    ], { timeout: 30000 }, (err, stdout) => {
-      const url = stdout?.trim().split('\n')[0];
-      if (err || !url) { console.error(`yt-dlp [${client}] error:`, err?.message?.slice(0,200)); reject(err); }
-      else resolve(url);
-    });
-  });
-  return tryClient('android,web')
-    .catch(() => tryClient('ios,web'))
-    .then(url => { streamCache[ytId] = { url, expires: Date.now() + 4 * 3600 * 1000 }; return url; });
-}
-
-// JSON endpoint (kept for compatibility with catalog saves/recommendations)
+// JSON endpoint — returns our proxy URL (browser never touches YouTube CDN directly)
 app.get('/api/yt/stream/:ytId', (req, res) => {
   const ytId = req.params.ytId;
   if (!/^[a-zA-Z0-9_-]{6,12}$/.test(ytId)) return res.status(400).json({ error: 'Ungültige Video-ID' });
-  // Return proxy URL so the browser never touches YouTube CDN directly (avoids IP mismatch)
   res.json({ streamUrl: `/api/yt/proxy/${ytId}` });
 });
 
-// Proxy endpoint: fetches audio from YouTube CDN server-side and pipes it to the client
-// This solves the IP-mismatch problem: yt-dlp runs on the server, and the same server also
-// serves the bytes to the browser — no direct browser→YouTube CDN connection needed.
-app.get('/api/yt/proxy/:ytId', async (req, res) => {
+// Audio proxy: yt-dlp schreibt direkt in den Response-Stream → kein URL-Fetching, kein IP-Problem
+app.get('/api/yt/proxy/:ytId', (req, res) => {
   const ytId = req.params.ytId;
   if (!/^[a-zA-Z0-9_-]{6,12}$/.test(ytId)) return res.status(400).end();
-  let cdnUrl;
-  try { cdnUrl = await getCdnUrl(ytId); } catch {
-    return res.status(502).json({ error: 'Stream nicht verfügbar' });
-  }
-  const parsedUrl = new URL(cdnUrl);
-  const mod = parsedUrl.protocol === 'https:' ? https : http;
-  const upstreamHeaders = {
-    'User-Agent': 'Mozilla/5.0 (compatible)',
-    'Accept': '*/*',
-  };
-  if (req.headers.range) upstreamHeaders['Range'] = req.headers.range;
-  const proxyReq = mod.get(cdnUrl, { headers: upstreamHeaders }, (proxyRes) => {
-    const forward = ['content-type','content-length','content-range','accept-ranges'];
-    const outHeaders = {};
-    forward.forEach(h => { if (proxyRes.headers[h]) outHeaders[h] = proxyRes.headers[h]; });
-    res.writeHead(proxyRes.statusCode, outHeaders);
-    proxyRes.pipe(res);
-    req.on('close', () => proxyReq.destroy());
-  });
-  proxyReq.on('error', (e) => {
-    console.error('proxy error:', e.message);
+
+  console.log(`[proxy] start ${ytId}`);
+  res.setHeader('Content-Type', 'audio/webm');
+  res.setHeader('Transfer-Encoding', 'chunked');
+
+  const proc = spawn('yt-dlp', [
+    '-f', 'bestaudio[ext=webm]/bestaudio',
+    '--no-warnings', '--no-playlist', '--no-part',
+    '--extractor-args', 'youtube:player_client=android',
+    '-o', '-',
+    `https://www.youtube.com/watch?v=${ytId}`
+  ]);
+
+  proc.stdout.pipe(res);
+  proc.stderr.on('data', d => console.error(`[proxy ${ytId}]`, d.toString().slice(0, 200)));
+  proc.on('close', code => { if (code !== 0) console.error(`[proxy ${ytId}] exit ${code}`); });
+  proc.on('error', e => {
+    console.error(`[proxy ${ytId}] error:`, e.message);
     if (!res.headersSent) res.status(502).end();
+    else res.end();
   });
+  req.on('close', () => proc.kill('SIGTERM'));
 });
 
 app.post('/api/yt/save', (req, res) => {
