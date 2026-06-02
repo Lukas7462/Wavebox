@@ -392,7 +392,7 @@ function parseYtItem(i) {
 }
 
 // Titles that indicate non-song content
-const NON_MUSIC_PATTERN = /\b(full album|complete album|full concert|live concert|live tour|official video|music video|musikvideo|video oficial|teaser|trailer|behind the scenes|making of|documentary|interview|podcast|dj set|megamix|nonstop|non-?stop mix|\d+\s*hour|\bvlog\b)\b/i;
+const NON_MUSIC_PATTERN = /\b(full album|complete album|full concert|live concert|live tour|official video|music video|lyric video|lyrics video|musikvideo|video oficial|teaser|trailer|behind the scenes|making of|documentary|interview|podcast|dj set|megamix|nonstop|non-?stop mix|\d+\s*hour|\bvlog\b|hd video|official film)\b/i;
 
 // ─── Admin: Direct YouTube Search (for catalog management) ───
 app.get('/api/yt/search', (req, res) => {
@@ -590,14 +590,29 @@ app.get('/api/yt/stream/:ytId', (req, res) => {
   execFile('yt-dlp', [
     '-f', 'bestaudio[ext=m4a]/bestaudio/best',
     '-g', '--no-warnings', '--no-playlist',
+    '--extractor-args', 'youtube:player_client=android,web',
     `https://www.youtube.com/watch?v=${ytId}`
-  ], { timeout: 20000 }, (err, stdout) => {
-    if (err) {
-      console.error('yt-dlp stream error:', err.message);
-      return res.status(400).json({ error: 'Stream nicht verfügbar' });
+  ], { timeout: 30000 }, (err, stdout) => {
+    if (err || !stdout?.trim()) {
+      console.error('yt-dlp stream error:', err?.message?.slice(0, 300));
+      // Retry with iOS client as fallback
+      execFile('yt-dlp', [
+        '-f', 'bestaudio/best',
+        '-g', '--no-warnings', '--no-playlist',
+        '--extractor-args', 'youtube:player_client=ios,web',
+        `https://www.youtube.com/watch?v=${ytId}`
+      ], { timeout: 30000 }, (err2, stdout2) => {
+        if (err2 || !stdout2?.trim()) {
+          console.error('yt-dlp stream retry error:', err2?.message?.slice(0, 200));
+          return res.status(400).json({ error: 'Stream nicht verfügbar' });
+        }
+        const streamUrl = stdout2.trim().split('\n')[0];
+        streamCache[ytId] = { url: streamUrl, expires: Date.now() + 5 * 3600 * 1000 };
+        res.json({ streamUrl });
+      });
+      return;
     }
     const streamUrl = stdout.trim().split('\n')[0];
-    if (!streamUrl) return res.status(400).json({ error: 'Kein Stream-URL' });
     streamCache[ytId] = { url: streamUrl, expires: Date.now() + 5 * 3600 * 1000 };
     res.json({ streamUrl });
   });
