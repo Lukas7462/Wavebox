@@ -350,20 +350,34 @@ app.delete('/api/playlists/:id', (req, res) => {
 // ─── YouTube Helpers ───
 const streamCache = {};
 
-function ytDlpSearch(searchQuery, count = 15) {
+function ytDlpSearch(searchQuery, count = 15, extraArgs = []) {
   return new Promise(resolve => {
     execFile('yt-dlp', [
       '--dump-json', '--flat-playlist', '--no-warnings',
+      '--extractor-args', 'youtube:player_client=android,web',
       '-I', `1:${count}`,
+      ...extraArgs,
       searchQuery
-    ], { maxBuffer: 50 * 1024 * 1024, timeout: 25000 }, (err, stdout) => {
-      if (err || !stdout) return resolve([]);
+    ], { maxBuffer: 50 * 1024 * 1024, timeout: 30000 }, (err, stdout) => {
+      if (err) console.error(`yt-dlp search error [${searchQuery.slice(0, 40)}]:`, err.message?.slice(0, 200));
+      if (!stdout?.trim()) return resolve([]);
       try {
         const lines = stdout.trim().split('\n');
         resolve(lines.map(l => { try { return JSON.parse(l) } catch { return null } }).filter(Boolean));
       } catch { resolve([]); }
     });
   });
+}
+
+// Try ytsearchmusic first, fallback to ytsearch if 0 results
+async function ytDlpSearchWithFallback(prefix, q, count) {
+  const musicQuery = `ytsearchmusic${count}:${q}`;
+  let items = await ytDlpSearch(musicQuery, count);
+  if (items.length === 0) {
+    console.log(`ytsearchmusic returned 0 for "${q}", falling back to ytsearch`);
+    items = await ytDlpSearch(`ytsearch${count}:${q}`, count);
+  }
+  return items;
 }
 
 function parseYtItem(i) {
@@ -401,13 +415,14 @@ app.get('/api/yt/search-music', async (req, res) => {
   if (!q) return res.status(400).json({ error: 'Query erforderlich' });
 
   try {
-    // Parallel: YouTube Music main search + covers + albums
+    // Parallel: YouTube Music main search + covers + albums (with ytsearch fallback)
     const [mainItems, coverItems, albumItems] = await Promise.all([
-      ytDlpSearch(`ytsearchmusic15:${q}`, 15),
-      ytDlpSearch(`ytsearchmusic10:${q} cover`, 10),
-      ytDlpSearch(`ytsearchmusic10:${q} album`, 10),
+      ytDlpSearchWithFallback('ytsearchmusic', q, 15),
+      ytDlpSearchWithFallback('ytsearchmusic', `${q} cover`, 10),
+      ytDlpSearchWithFallback('ytsearchmusic', `${q} album`, 10),
     ]);
 
+    console.log(`search-music "${q}": main=${mainItems.length}, cover=${coverItems.length}, album=${albumItems.length}`);
     const allItems = [...mainItems, ...coverItems, ...albumItems];
 
     // Deduplicate by YouTube ID
