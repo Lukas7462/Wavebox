@@ -580,31 +580,33 @@ app.delete('/api/tracks/:id/yt', (req, res) => {
 });
 
 // ─── Stream any YouTube audio (no catalog restriction) ───
-// Stream-Endpunkt: CDN-URL via yt-dlp holen, Browser spielt direkt ab
+// Stream-Endpunkt: gibt Proxy-URL zurück
 app.get('/api/yt/stream/:ytId', (req, res) => {
   const ytId = req.params.ytId;
   if (!/^[a-zA-Z0-9_-]{6,12}$/.test(ytId)) return res.status(400).json({ error: 'Ungültige Video-ID' });
-  const cached = streamCache[ytId];
-  if (cached && cached.expires > Date.now()) return res.json({ streamUrl: cached.url });
-  const tryClient = (client, cb) => execFile('yt-dlp', [
-    '-f', 'bestaudio[ext=m4a]/bestaudio/best',
-    '-g', '--no-warnings', '--no-playlist',
-    '--extractor-args', `youtube:player_client=${client}`,
+  res.json({ streamUrl: `/api/yt/proxy/${ytId}` });
+});
+
+// Audio-Proxy: yt-dlp lädt herunter und konvertiert zu MP3 → Browser kann sofort abspielen
+app.get('/api/yt/proxy/:ytId', (req, res) => {
+  const ytId = req.params.ytId;
+  if (!/^[a-zA-Z0-9_-]{6,12}$/.test(ytId)) return res.status(400).end();
+
+  res.setHeader('Content-Type', 'audio/mpeg');
+
+  const proc = spawn('yt-dlp', [
+    '-f', 'bestaudio',
+    '--no-warnings', '--no-playlist',
+    '--extractor-args', 'youtube:player_client=android',
+    '-x', '--audio-format', 'mp3', '--audio-quality', '5',
+    '-o', '-',
     `https://www.youtube.com/watch?v=${ytId}`
-  ], { timeout: 30000 }, cb);
-  tryClient('android,web', (err, stdout) => {
-    const url = stdout?.trim().split('\n')[0];
-    if (err || !url) {
-      return tryClient('ios,web', (err2, stdout2) => {
-        const url2 = stdout2?.trim().split('\n')[0];
-        if (err2 || !url2) return res.status(400).json({ error: 'Stream nicht verfügbar' });
-        streamCache[ytId] = { url: url2, expires: Date.now() + 4 * 3600 * 1000 };
-        res.json({ streamUrl: url2 });
-      });
-    }
-    streamCache[ytId] = { url, expires: Date.now() + 4 * 3600 * 1000 };
-    res.json({ streamUrl: url });
-  });
+  ]);
+
+  proc.stdout.pipe(res);
+  proc.stderr.on('data', d => console.error(`[proxy ${ytId}]`, d.toString().slice(0, 200)));
+  proc.on('error', e => { if (!res.headersSent) res.status(502).end(); else res.end(); });
+  req.on('close', () => proc.kill('SIGTERM'));
 });
 
 app.post('/api/yt/save', (req, res) => {
