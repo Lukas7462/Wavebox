@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { api } from "./api.js";
+import TennisTournament from "./TennisTournament.jsx";
 
 function getCG(id){const h1=(parseInt(id,36)*137)%360,h2=(h1+40+(parseInt(id,36)*53)%80)%360;return`linear-gradient(135deg,hsl(${h1},70%,35%),hsl(${h2},60%,20%))`}
 function getCI(g){return{Synthwave:"◈",Chillout:"☀",Ambient:"◎",Electronic:"⚡",Rock:"♦",Pop:"★",Jazz:"♪",Classical:"♫","Hip-Hop":"◆"}[g]||"♬"}
@@ -790,6 +791,9 @@ export default function App(){
     {editingTrack&&<TrackEditor track={editingTrack} onClose={()=>{setEditingTrack(null)}} onSave={()=>{}} onRefresh={async()=>{const t=await api.getTracks();setTracks(t);const updated=t.find(x=>x.id===editingTrack.id);if(updated)setEditingTrack(updated);}}/>}
     {showLyrics&&cur?.lyrics&&<LyricsView lyrics={cur.lyrics} progress={progress} track={cur} onClose={()=>setShowLyrics(false)}/>}
 
+    {/* Tennis Tournament Overlay */}
+    {view==="tournament"&&<div style={{position:"fixed",inset:0,zIndex:30,overflow:"auto"}}><TennisTournament/></div>}
+
     {/* Fullscreen Now Playing */}
     {showFullPlayer&&cur&&<div style={{position:"fixed",inset:0,zIndex:40,background:"rgba(5,5,10,0.98)",backdropFilter:"blur(40px)",display:"flex",flexDirection:"column",animation:"fadeIn 0.4s ease",overflow:"auto"}}>
       {/* Blurred background */}
@@ -1321,6 +1325,7 @@ export default function App(){
       <button className={`nav-btn ${view==="home"?"active":""}`} onClick={()=>{setView("home");setSq("");setSelectedArtist(null)}}><I.Home/> Home</button>
       <button className={`nav-btn ${view==="search"?"active":""}`} onClick={()=>{setView("search");setSelectedArtist(null)}}><I.Srch/> Suche</button>
       <button className={`nav-btn ${view==="library"?"active":""}`} onClick={()=>{setView("library");setSq("");setSelectedArtist(null)}}><I.Lib/> Bibliothek</button>
+      <button className={`nav-btn ${view==="tournament"?"active":""}`} onClick={()=>setView(view==="tournament"?"home":"tournament")} style={view==="tournament"?{color:"#42a5f5"}:{}} title="Turniere">🎾 Turnier</button>
       {user?.isAdmin&&<button className={`nav-btn ${view==="admin"?"active":""}`} onClick={()=>{setView("admin");setSq("");setSelectedArtist(null)}}><I.Adm/> Admin</button>}
       {user&&<button className={`nav-btn ${view==="profile"?"active":""}`} onClick={()=>{setView("profile");setSq("");setSelectedArtist(null)}}><I.Usr/> Profil</button>}
     </div>
