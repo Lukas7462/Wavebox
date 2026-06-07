@@ -4,3 +4,4 @@ backend/public/
 backend/package-lock.json
 *.zip
 .env
+.claude/
