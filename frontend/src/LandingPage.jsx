@@ -6,28 +6,36 @@ const CARDS = [
     title: "Als Legende spielen",
     desc: "Wähle ein historisches Meisterteam und führe es durch den Gauntlet.",
     highlight: null,
+    mode: "legend",
+    playable: true,
   },
   {
     icon: "🌍",
     title: "Bau deine Nation",
     desc: "Wähle dein Land. Stelle dein All-Time XI zusammen. Dann kämpfe.",
     highlight: null,
+    mode: "nation",
+    playable: false,
   },
   {
     icon: "👥",
     title: "Mit Freunden spielen",
     desc: "Team aufbauen und Freunde herausfordern.",
     highlight: "gold",
+    mode: "friends",
+    playable: false,
   },
   {
     icon: "🌐",
     title: "WC2026 Fantasy",
     desc: "Pick GK · DEF · MID · ATT · ST from real WC2026 players. Fight 7 rounds to win the Cup.",
     highlight: "green",
+    mode: "fantasy",
+    playable: false,
   },
 ];
 
-export default function LandingPage({ onEnterApp }) {
+export default function LandingPage({ onEnterApp, onStartGame }) {
   const [lang, setLang] = useState("DE");
   const [hovered, setHovered] = useState(null);
 
@@ -173,6 +181,7 @@ export default function LandingPage({ onEnterApp }) {
           <div
             key={i}
             className="card-item"
+            onClick={() => card.playable && onStartGame && onStartGame(card.mode)}
             onMouseEnter={() => setHovered(i)}
             onMouseLeave={() => setHovered(null)}
             style={{
@@ -190,10 +199,29 @@ export default function LandingPage({ onEnterApp }) {
                   : "1px solid rgba(255,255,255,0.07)",
               borderRadius: "14px",
               padding: "18px 15px 16px",
-              cursor: "pointer",
+              cursor: card.playable ? "pointer" : "default",
               transition: "transform 0.2s ease, filter 0.2s ease",
+              position: "relative",
             }}
           >
+            {card.playable && (
+              <span style={{
+                position: "absolute", top: 10, right: 10,
+                fontSize: "9px", fontWeight: 800, letterSpacing: "0.8px",
+                background: "rgba(245,200,66,0.15)", color: "#f5c842",
+                border: "1px solid rgba(245,200,66,0.3)",
+                borderRadius: 5, padding: "2px 6px",
+              }}>SPIELEN</span>
+            )}
+            {!card.playable && (
+              <span style={{
+                position: "absolute", top: 10, right: 10,
+                fontSize: "9px", fontWeight: 700, letterSpacing: "0.5px",
+                background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.25)",
+                border: "1px solid rgba(255,255,255,0.08)",
+                borderRadius: 5, padding: "2px 6px",
+              }}>BALD</span>
+            )}
             <div style={{ fontSize: "26px", marginBottom: "9px" }}>{card.icon}</div>
             <h3 style={{
               fontSize: "14px",
