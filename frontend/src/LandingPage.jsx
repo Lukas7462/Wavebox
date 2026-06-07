@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const CARDS = [
   {
@@ -6,7 +6,7 @@ const CARDS = [
     title: "Als Legende spielen",
     desc: "Wähle ein historisches Meisterteam und führe es durch den Gauntlet.",
     highlight: null,
-    mode: "legend",
+    mode: "game",
     playable: true,
   },
   {
@@ -15,7 +15,7 @@ const CARDS = [
     desc: "Wähle dein Land. Stelle dein All-Time XI zusammen. Dann kämpfe.",
     highlight: null,
     mode: "nation",
-    playable: false,
+    playable: true,
   },
   {
     icon: "👥",
@@ -23,7 +23,7 @@ const CARDS = [
     desc: "Team aufbauen und Freunde herausfordern.",
     highlight: "gold",
     mode: "friends",
-    playable: false,
+    playable: true,
   },
   {
     icon: "🌐",
@@ -35,9 +35,148 @@ const CARDS = [
   },
 ];
 
+const GOLD = "#f5c842";
+
+function WelcomeModal({ onClose }) {
+  const [dontShow, setDontShow] = useState(false);
+
+  const handleClose = () => {
+    if (dontShow) {
+      localStorage.setItem("wc70_seen", "1");
+    }
+    onClose();
+  };
+
+  return (
+    <div style={{
+      position: "fixed",
+      inset: 0,
+      background: "rgba(0,0,0,0.75)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      zIndex: 1000,
+      padding: "16px",
+    }}>
+      <div style={{
+        background: "linear-gradient(160deg, #0f2545 0%, #091830 100%)",
+        border: "1px solid rgba(245,200,66,0.25)",
+        borderRadius: "20px",
+        padding: "32px 24px 28px",
+        maxWidth: "400px",
+        width: "100%",
+        boxSizing: "border-box",
+        boxShadow: "0 24px 80px rgba(0,0,0,0.6)",
+      }}>
+        {/* Football icon */}
+        <div style={{ textAlign: "center", marginBottom: "20px" }}>
+          <div style={{ fontSize: "52px", display: "inline-block" }}>⚽</div>
+        </div>
+
+        {/* Title */}
+        <h2 style={{
+          fontSize: "18px",
+          fontWeight: "800",
+          color: GOLD,
+          textAlign: "center",
+          lineHeight: 1.35,
+          margin: "0 0 24px",
+        }}>
+          Kannst du die WM 7-0 gewinnen, ohne ein Spiel zu verlieren?
+        </h2>
+
+        {/* Bullet points */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "14px", marginBottom: "28px" }}>
+          {[
+            { icon: "🏆", text: "Play a Legend — pick a historic championship squad and take them through the 7-round gauntlet." },
+            { icon: "🌍", text: "Build Your Nation — choose your country and hand-pick your all-time XI from every era." },
+            { icon: "⚡", text: "Spin each round to reveal your opponent — a legendary team from any era. Win to advance." },
+            { icon: "📤", text: "Share your run — copy your result or save a screenshot from the final screen." },
+          ].map((item, i) => (
+            <div key={i} style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
+              <span style={{ fontSize: "20px", flexShrink: 0, marginTop: "1px" }}>{item.icon}</span>
+              <p style={{
+                margin: 0,
+                fontSize: "13px",
+                color: "rgba(255,255,255,0.7)",
+                lineHeight: 1.5,
+              }}>
+                {item.text}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        {/* Checkbox */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            marginBottom: "20px",
+            padding: "10px 14px",
+            background: "rgba(255,255,255,0.04)",
+            borderRadius: "10px",
+            cursor: "pointer",
+          }}
+          onClick={() => setDontShow(!dontShow)}
+        >
+          <div style={{
+            width: "18px",
+            height: "18px",
+            borderRadius: "5px",
+            border: `1.5px solid ${dontShow ? GOLD : "rgba(255,255,255,0.25)"}`,
+            background: dontShow ? "rgba(245,200,66,0.2)" : "transparent",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+            transition: "all 0.15s",
+          }}>
+            {dontShow && <span style={{ fontSize: "12px", color: GOLD }}>✓</span>}
+          </div>
+          <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.55)" }}>Nicht mehr anzeigen</span>
+        </div>
+
+        {/* CTA Button */}
+        <button
+          onClick={handleClose}
+          style={{
+            width: "100%",
+            padding: "15px",
+            background: `linear-gradient(135deg, ${GOLD}, #e89c00)`,
+            border: "none",
+            borderRadius: "12px",
+            color: "#000",
+            fontSize: "16px",
+            fontWeight: "800",
+            cursor: "pointer",
+            fontFamily: "inherit",
+            letterSpacing: "0.5px",
+            boxShadow: "0 4px 24px rgba(245,200,66,0.35)",
+            transition: "opacity 0.15s, transform 0.15s",
+          }}
+          onMouseEnter={e => { e.currentTarget.style.opacity = "0.9"; e.currentTarget.style.transform = "translateY(-1px)"; }}
+          onMouseLeave={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.transform = ""; }}
+        >
+          LOS GEHT'S! ⚽
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function LandingPage({ onEnterApp, onStartGame }) {
   const [lang, setLang] = useState("DE");
   const [hovered, setHovered] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+
+  useEffect(() => {
+    const seen = localStorage.getItem("wc70_seen");
+    if (!seen) {
+      setShowModal(true);
+    }
+  }, []);
 
   return (
     <div style={{
@@ -66,6 +205,8 @@ export default function LandingPage({ onEnterApp, onStartGame }) {
           background: rgba(255,255,255,0.18) !important;
         }
       `}</style>
+
+      {showModal && <WelcomeModal onClose={() => setShowModal(false)} />}
 
       {/* ── Navbar ── */}
       <nav style={{
@@ -270,7 +411,7 @@ export default function LandingPage({ onEnterApp, onStartGame }) {
           color: "rgba(255,255,255,0.25)",
           textTransform: "uppercase",
         }}>
-          POWERED BY WAVEBOX
+          POWERED BY INBOX ZERO
         </span>
         <span style={{ width: "1px", height: "14px", background: "rgba(255,255,255,0.1)" }} />
         <span style={{

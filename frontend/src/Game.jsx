@@ -3,33 +3,40 @@ import { useState, useEffect, useRef } from "react";
 // ── Data ──────────────────────────────────────────────────────────────────────
 
 const LEGENDARY_TEAMS = [
-  { id: "brazil1970", name: "Brasilien 1970", flag: "🇧🇷", atk: 95, mid: 90, def: 82, players: ["Pelé", "Jairzinho", "Rivelino", "Tostão", "C. Alberto"] },
-  { id: "wgermany1974", name: "W.-Deutschland 74", flag: "🇩🇪", atk: 87, mid: 88, def: 90, players: ["G. Müller", "Beckenbauer", "Breitner", "Overath", "Maier"] },
-  { id: "argentina1986", name: "Argentinien 1986", flag: "🇦🇷", atk: 96, mid: 85, def: 80, players: ["Maradona", "Valdano", "Burruchaga", "Ruggeri", "Pumpido"] },
-  { id: "france1998", name: "Frankreich 1998", flag: "🇫🇷", atk: 88, mid: 92, def: 90, players: ["Zidane", "Henry", "Thuram", "Desailly", "Barthez"] },
-  { id: "spain2010", name: "Spanien 2010", flag: "🇪🇸", atk: 85, mid: 96, def: 88, players: ["Villa", "Xavi", "Iniesta", "Ramos", "Casillas"] },
-  { id: "germany2014", name: "Deutschland 2014", flag: "🇩🇪", atk: 90, mid: 90, def: 88, players: ["Müller", "Götze", "Neuer", "Lahm", "Khedira"] },
-  { id: "france2018", name: "Frankreich 2018", flag: "🇫🇷", atk: 90, mid: 88, def: 90, players: ["Mbappé", "Griezmann", "Pogba", "Kanté", "Lloris"] },
-  { id: "argentina2022", name: "Argentinien 2022", flag: "🇦🇷", atk: 93, mid: 87, def: 85, players: ["Messi", "Álvarez", "Di María", "De Paul", "Otamendi"] },
+  { id:"spain2010",      flag:"🇪🇸", name:"Spain",         year:2010, status:"Champions",  statusIcon:"🏆", desc:"Tiki-taka at its peak. Iniesta's winner in Johannesburg.",                                              star:"Andrés Iniesta",     players:["Xavi","Andrés Iniesta","David Villa","Iker Casillas","Carles Puyol"],              atk:85,mid:96,def:88 },
+  { id:"argentina2022",  flag:"🇦🇷", name:"Argentina",     year:2022, status:"Champions",  statusIcon:"🏆", desc:"Messi's coronation. The greatest World Cup final ever played.",                                          star:"Lionel Messi",        players:["Lionel Messi","Angel Di María","Rodrigo De Paul","Julián Álvarez","E. Martínez"],  atk:93,mid:87,def:85 },
+  { id:"brazil1994",     flag:"🇧🇷", name:"Brazil",        year:1994, status:"Champions",  statusIcon:"🏆", desc:"Romário and Bebeto — the most feared strike duo of the era.",                                            star:"Romário",             players:["Romário","Bebeto","Mazinho","Cafu","Aldair"],                                       atk:93,mid:85,def:84 },
+  { id:"italy2006",      flag:"🇮🇹", name:"Italy",         year:2006, status:"Champions",  statusIcon:"🏆", desc:"The ultimate defensive masterclass. Cannavaro won the Ballon d'Or.",                                     star:"Fabio Cannavaro",     players:["Gianluigi Buffon","Fabio Cannavaro","Andrea Pirlo","Del Piero","Totti"],            atk:82,mid:85,def:94 },
+  { id:"hungary1954",    flag:"🇭🇺", name:"Hungary",       year:1954, status:"Runners-Up", statusIcon:"🥈", desc:"The Mighty Magyars. 32 games unbeaten. Lost the final — arguably the greatest team never to win it.",    star:"Ferenc Puskás",       players:["Ferenc Puskás","Sándor Kocsis","Nándor Hidegkuti","József Bozsik","Zoltán Czibor"], atk:96,mid:90,def:80 },
+  { id:"wgermany1974",   flag:"🇩🇪", name:"West Germany",  year:1974, status:"Champions",  statusIcon:"🏆", desc:"Beckenbauer's libero revolution. Gerd Müller scored in every match.",                                    star:"Franz Beckenbauer",   players:["Franz Beckenbauer","Gerd Müller","Paul Breitner","Wolfgang Overath","Sepp Maier"],  atk:87,mid:88,def:90 },
+  { id:"brazil1982",     flag:"🇧🇷", name:"Brazil",        year:1982, status:"QF Exit",    statusIcon:"💔", desc:"The most beautiful team that never won. Eliminated in the group stage by Italy despite outplaying everyone.", star:"Zico",              players:["Zico","Sócrates","Falcão","Éder","Cerezo"],                                         atk:94,mid:92,def:78 },
+  { id:"italy1982",      flag:"🇮🇹", name:"Italy",         year:1982, status:"Champions",  statusIcon:"🏆", desc:"Paolo Rossi went from suspended to hat-trick hero. Tardelli's scream in the final is eternal.",            star:"Paolo Rossi",         players:["Paolo Rossi","Marco Tardelli","Dino Zoff","Cabrini","Gaetano Scirèa"],             atk:86,mid:84,def:90 },
+  { id:"france2018",     flag:"🇫🇷", name:"France",        year:2018, status:"Champions",  statusIcon:"🏆", desc:"Mbappé at 19. Kanté everywhere. A generational squad that suffocated every opponent.",                    star:"Kylian Mbappé",       players:["Kylian Mbappé","Antoine Griezmann","N'Golo Kanté","Raphaël Varane","Hugo Lloris"],  atk:90,mid:88,def:90 },
+  { id:"netherlands2010",flag:"🇳🇱", name:"Netherlands",   year:2010, status:"Runners-Up", statusIcon:"🥈", desc:"Sneijder's 5-goal tournament. Lost in extra time — Iniesta's goal broke Dutch hearts.",                   star:"Wesley Sneijder",     players:["Wesley Sneijder","Arjen Robben","Robin van Persie","Mark van Bommel","Stekelenburg"],atk:88,mid:86,def:82 },
+  { id:"uruguay1950",    flag:"🇺🇾", name:"Uruguay",       year:1950, status:"Champions",  statusIcon:"🏆", desc:"Ghiggia silenced 200,000 fans in the Maracanã. The greatest upset in football history.",                  star:"Alcides Ghiggia",     players:["Juan Schiaffino","Alcides Ghiggia","Obdulio Varela","Roque Máspoli","Evaristo"],    atk:86,mid:83,def:85 },
+  { id:"brazil1970",     flag:"🇧🇷", name:"Brazil",        year:1970, status:"Champions",  statusIcon:"🏆", desc:"The greatest team ever assembled. Pelé's final World Cup — pure footballing perfection.",                  star:"Pelé",                players:["Pelé","Jairzinho","Rivelino","Tostão","Carlos Alberto"],                           atk:95,mid:90,def:82 },
+  { id:"argentina1986",  flag:"🇦🇷", name:"Argentina",     year:1986, status:"Champions",  statusIcon:"🏆", desc:"Maradona single-handedly dragged Argentina to glory. The Hand of God and Goal of the Century.",            star:"Diego Maradona",      players:["Diego Maradona","Valdano","Burruchaga","Ruggeri","Pumpido"],                        atk:96,mid:85,def:80 },
+  { id:"france1998",     flag:"🇫🇷", name:"France",        year:1998, status:"Champions",  statusIcon:"🏆", desc:"Zidane's two headers in the final. The last great home World Cup victory.",                                star:"Zinédine Zidane",     players:["Zinédine Zidane","Thierry Henry","Thuram","Desailly","Barthez"],                    atk:88,mid:92,def:90 },
+  { id:"germany2014",    flag:"🇩🇪", name:"Germany",       year:2014, status:"Champions",  statusIcon:"🏆", desc:"The machine. 7-1 vs Brazil. Götze's extra-time winner. A decade of planning paid off.",                   star:"Thomas Müller",       players:["Thomas Müller","Mario Götze","Manuel Neuer","Philipp Lahm","Toni Kroos"],          atk:90,mid:90,def:88 },
 ];
 
 const OPP_POOL = [
-  { name: "England", flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿", atk: 84, mid: 83, def: 85, players: ["Kane", "Bellingham", "Saka", "Stones", "Pickford"] },
-  { name: "Niederlande", flag: "🇳🇱", atk: 86, mid: 84, def: 82, players: ["Van Dijk", "Depay", "Gakpo", "De Jong", "Timber"] },
-  { name: "Portugal", flag: "🇵🇹", atk: 89, mid: 83, def: 83, players: ["Ronaldo", "Félix", "Pepe", "Rúben Dias", "Costa"] },
-  { name: "Uruguay", flag: "🇺🇾", atk: 85, mid: 82, def: 84, players: ["Suárez", "Cavani", "Valverde", "Godín", "Muslera"] },
-  { name: "Kroatien", flag: "🇭🇷", atk: 83, mid: 88, def: 84, players: ["Modrić", "Kovačić", "Gvardiol", "Perisic", "Livaković"] },
-  { name: "Belgien", flag: "🇧🇪", atk: 88, mid: 86, def: 83, players: ["Lukaku", "De Bruyne", "Hazard", "Tielemans", "Courtois"] },
-  { name: "Marokko", flag: "🇲🇦", atk: 82, mid: 83, def: 89, players: ["Boufal", "Ziyech", "En-Nesyri", "Hakimi", "Bounou"] },
-  { name: "Japan", flag: "🇯🇵", atk: 80, mid: 84, def: 83, players: ["Mitoma", "Kubo", "Morita", "Tomiyasu", "Gonda"] },
-  { name: "Mexiko", flag: "🇲🇽", atk: 81, mid: 80, def: 80, players: ["Jiménez", "Lozano", "Guardado", "Moreno", "Ochoa"] },
-  { name: "Senegal", flag: "🇸🇳", atk: 83, mid: 81, def: 82, players: ["Mané", "Dia", "Mendy", "Kouyaté", "Diallo"] },
-  { name: "Brasilien", flag: "🇧🇷", atk: 88, mid: 85, def: 84, players: ["Vinícius Jr.", "Neymar", "Casemiro", "Thiago Silva", "Alisson"] },
-  { name: "Deutschland", flag: "🇩🇪", atk: 85, mid: 88, def: 87, players: ["Havertz", "Musiala", "Kroos", "Rüdiger", "Neuer"] },
-  { name: "Frankreich", flag: "🇫🇷", atk: 87, mid: 90, def: 88, players: ["Mbappé", "Giroud", "Kanté", "Varane", "Lloris"] },
-  { name: "Spanien", flag: "🇪🇸", atk: 84, mid: 92, def: 86, players: ["Morata", "Pedri", "Busquets", "Alba", "Unai Simón"] },
-  { name: "Argentinien", flag: "🇦🇷", atk: 90, mid: 86, def: 83, players: ["Messi", "Lautaro", "Mac Allister", "Otamendi", "E. Martínez"] },
-  { name: "Italien", flag: "🇮🇹", atk: 82, mid: 85, def: 91, players: ["Immobile", "Insigne", "Jorginho", "Chiellini", "Donnarumma"] },
+  { name: "England",     flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿", atk: 84, mid: 83, def: 85, players: ["Kane", "Bellingham", "Saka", "Stones", "Pickford"] },
+  { name: "Netherlands", flag: "🇳🇱", atk: 86, mid: 84, def: 82, players: ["Van Dijk", "Depay", "Gakpo", "De Jong", "Timber"] },
+  { name: "Portugal",    flag: "🇵🇹", atk: 89, mid: 83, def: 83, players: ["Ronaldo", "Félix", "Pepe", "Rúben Dias", "Costa"] },
+  { name: "Uruguay",     flag: "🇺🇾", atk: 85, mid: 82, def: 84, players: ["Suárez", "Cavani", "Valverde", "Godín", "Muslera"] },
+  { name: "Croatia",     flag: "🇭🇷", atk: 83, mid: 88, def: 84, players: ["Modrić", "Kovačić", "Gvardiol", "Perisic", "Livaković"] },
+  { name: "Belgium",     flag: "🇧🇪", atk: 88, mid: 86, def: 83, players: ["Lukaku", "De Bruyne", "Hazard", "Tielemans", "Courtois"] },
+  { name: "Morocco",     flag: "🇲🇦", atk: 82, mid: 83, def: 89, players: ["Boufal", "Ziyech", "En-Nesyri", "Hakimi", "Bounou"] },
+  { name: "Japan",       flag: "🇯🇵", atk: 80, mid: 84, def: 83, players: ["Mitoma", "Kubo", "Morita", "Tomiyasu", "Gonda"] },
+  { name: "Mexico",      flag: "🇲🇽", atk: 81, mid: 80, def: 80, players: ["Jiménez", "Lozano", "Guardado", "Moreno", "Ochoa"] },
+  { name: "Senegal",     flag: "🇸🇳", atk: 83, mid: 81, def: 82, players: ["Mané", "Dia", "Mendy", "Kouyaté", "Diallo"] },
+  { name: "Brazil",      flag: "🇧🇷", atk: 88, mid: 85, def: 84, players: ["Vinícius Jr.", "Neymar", "Casemiro", "Thiago Silva", "Alisson"] },
+  { name: "Germany",     flag: "🇩🇪", atk: 85, mid: 88, def: 87, players: ["Havertz", "Musiala", "Kroos", "Rüdiger", "Neuer"] },
+  { name: "France",      flag: "🇫🇷", atk: 87, mid: 90, def: 88, players: ["Mbappé", "Giroud", "Kanté", "Varane", "Lloris"] },
+  { name: "Spain",       flag: "🇪🇸", atk: 84, mid: 92, def: 86, players: ["Morata", "Pedri", "Busquets", "Alba", "Unai Simón"] },
+  { name: "Argentina",   flag: "🇦🇷", atk: 90, mid: 86, def: 83, players: ["Messi", "Lautaro", "Mac Allister", "Otamendi", "E. Martínez"] },
+  { name: "Italy",       flag: "🇮🇹", atk: 82, mid: 85, def: 91, players: ["Immobile", "Insigne", "Jorginho", "Chiellini", "Donnarumma"] },
 ];
 
 const ROUNDS = [
@@ -48,13 +55,14 @@ const TACTICS = [
   { id: "defense",  icon: "🛡️", label: "Defensive",     desc: "DEF+8 / ATK−5",  atkB: -5, defB:  8 },
 ];
 
-const GOLD  = "#f5c842";
-const GREEN = "#4ade80";
-const RED   = "#f87171";
+const GOLD   = "#f5c842";
+const GREEN  = "#4ade80";
+const RED    = "#f87171";
+const PURPLE = "#7c3aed";
 
 // ── Engine ────────────────────────────────────────────────────────────────────
 
-function simGoals(atk, def) {
+export function simGoals(atk, def) {
   const prob = Math.max(0.06, Math.min(0.52, 0.18 + (atk - def) / 380));
   let g = 0;
   for (let i = 0; i < 9 + Math.floor(Math.random() * 5); i++) {
@@ -63,12 +71,11 @@ function simGoals(atk, def) {
   return Math.min(g, 7);
 }
 
-function buildEvents(myTeam, opp, myG, oppG) {
+export function buildEvents(myTeam, opp, myG, oppG) {
   const pick = arr => arr[Math.floor(Math.random() * arr.length)];
   const oppGeneric = ["García", "Santos", "Müller", "Smith", "Rossi", "Martin"];
   const oppPlayers = opp.players || oppGeneric;
 
-  // Unique random minutes
   const usedMins = new Set();
   const randMin = () => { let m; do { m = 1 + Math.floor(Math.random() * 89); } while (usedMins.has(m)); usedMins.add(m); return m; };
 
@@ -93,20 +100,19 @@ function buildEvents(myTeam, opp, myG, oppG) {
   return events;
 }
 
-function buildOpponents(excludeName) {
+export function buildOpponents(excludeName) {
   const pool = [...OPP_POOL.filter(o => o.name !== excludeName)].sort(() => Math.random() - 0.5);
   const sorted = [...pool].sort((a, b) => (a.atk + a.mid + a.def) - (b.atk + b.mid + b.def));
   const easy   = sorted.slice(0, Math.floor(sorted.length / 2));
   const hard   = sorted.slice(Math.floor(sorted.length / 2));
   const pick   = arr => arr[Math.floor(Math.random() * arr.length)];
-  // 3 group stage (easier), 2 medium, 1 semi, 1 final (hardest)
   const chosen = [pick(easy), pick(easy), pick(easy), pick(hard), pick(hard), pick(hard), pick(hard)];
   return chosen.map((o, i) => ({ ...o, atk: Math.min(99, o.atk + i * 2 | 0), mid: Math.min(99, o.mid + i * 2 | 0), def: Math.min(99, o.def + i * 2 | 0) }));
 }
 
 // ── Shared Styles ─────────────────────────────────────────────────────────────
 
-const BG = {
+export const BG = {
   minHeight: "100vh",
   background: "linear-gradient(180deg, #0c1d38 0%, #091426 60%, #070f1e 100%)",
   fontFamily: "'SF Pro Display','Helvetica Neue',system-ui,sans-serif",
@@ -115,7 +121,7 @@ const BG = {
   flexDirection: "column",
 };
 
-function Btn({ children, onClick, variant = "gold", style = {} }) {
+export function Btn({ children, onClick, variant = "gold", style = {} }) {
   const base = {
     border: "none", borderRadius: 12, padding: "13px 32px",
     fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
@@ -137,7 +143,7 @@ function Btn({ children, onClick, variant = "gold", style = {} }) {
   );
 }
 
-function StatBar({ label, my, opp, color }) {
+export function StatBar({ label, my, opp, color }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
       <span style={{ fontSize: 13, fontWeight: 700, width: 30, textAlign: "right", color }}>{my}</span>
@@ -156,23 +162,68 @@ function TeamSelect({ onBack, onSelect }) {
   return (
     <div style={BG}>
       <div style={{ padding: "14px 18px", display: "flex", alignItems: "center", gap: 12, borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-        <Btn onClick={onBack} variant="ghost" style={{ padding: "7px 14px", fontSize: 13 }}>← Zurück</Btn>
-        <h2 style={{ fontSize: 17, fontWeight: 700, color: GOLD }}>Wähle dein Legendenteam</h2>
+        <Btn onClick={onBack} variant="ghost" style={{ padding: "7px 14px", fontSize: 13 }}>← BACK</Btn>
+        <h2 style={{ fontSize: 17, fontWeight: 700, color: GOLD }}>Play a Legend</h2>
       </div>
-      <div style={{ padding: "16px", display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 10, overflowY: "auto" }}>
+      <div style={{ padding: "16px", display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 12, overflowY: "auto" }}>
         {LEGENDARY_TEAMS.map(t => (
-          <button key={t.id} onClick={() => onSelect(t)}
-            style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "16px 14px", textAlign: "left", cursor: "pointer", color: "#fff", fontFamily: "inherit", transition: "transform 0.15s, background 0.15s" }}
-            onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.1)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
-            onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.transform = ""; }}>
-            <div style={{ fontSize: 34, marginBottom: 8 }}>{t.flag}</div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: GOLD, marginBottom: 6 }}>{t.name}</div>
-            <div style={{ display: "flex", gap: 5, marginBottom: 8 }}>
-              {[["ATK", t.atk, RED], ["MID", t.mid, "#60a5fa"], ["DEF", t.def, GREEN]].map(([l, v, c]) => (
-                <span key={l} style={{ fontSize: 10, fontWeight: 700, background: c + "22", color: c, padding: "2px 6px", borderRadius: 5 }}>{l} {v}</span>
-              ))}
+          <button
+            key={t.id}
+            onClick={() => onSelect(t)}
+            style={{
+              background: "rgba(255,255,255,0.04)",
+              border: "1px solid rgba(255,255,255,0.08)",
+              borderRadius: 16,
+              padding: "16px 16px 14px",
+              textAlign: "left",
+              cursor: "pointer",
+              color: "#fff",
+              fontFamily: "inherit",
+              transition: "transform 0.15s, background 0.15s, border-color 0.15s",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.09)"; e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.borderColor = "rgba(245,200,66,0.3)"; }}
+            onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.04)"; e.currentTarget.style.transform = ""; e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; }}
+          >
+            {/* Top row: flag + name/year + status */}
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 10 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 28 }}>{t.flag}</span>
+                <div>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: "#fff", lineHeight: 1.2 }}>{t.name}</div>
+                  <div style={{ fontSize: 13, color: GOLD, fontWeight: 600 }}>{t.year}</div>
+                </div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: "rgba(255,255,255,0.4)", flexShrink: 0, marginTop: 2 }}>
+                <span>{t.statusIcon}</span>
+                <span>{t.status}</span>
+              </div>
             </div>
-            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", lineHeight: 1.4 }}>{t.players.slice(0, 3).join(" · ")}…</div>
+
+            {/* Description */}
+            <p style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", lineHeight: 1.5, margin: "0 0 12px" }}>{t.desc}</p>
+
+            {/* Player chips */}
+            <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+              {t.players.map(p => {
+                const isStar = p === t.star;
+                return (
+                  <span
+                    key={p}
+                    style={{
+                      fontSize: 10,
+                      fontWeight: isStar ? 700 : 500,
+                      padding: "3px 8px",
+                      borderRadius: 20,
+                      background: isStar ? `rgba(124,58,237,0.3)` : "rgba(255,255,255,0.07)",
+                      color: isStar ? "#a78bfa" : "rgba(255,255,255,0.5)",
+                      border: isStar ? "1px solid rgba(124,58,237,0.4)" : "1px solid transparent",
+                    }}
+                  >
+                    {isStar ? "⭐ " : ""}{p}
+                  </span>
+                );
+              })}
+            </div>
           </button>
         ))}
       </div>
@@ -180,7 +231,7 @@ function TeamSelect({ onBack, onSelect }) {
   );
 }
 
-function PreMatch({ myTeam, opp, roundIdx, results, tactic, setTactic, onStart, onBack }) {
+export function PreMatch({ myTeam, opp, roundIdx, results, tactic, setTactic, onStart, onBack }) {
   return (
     <div style={BG}>
       {/* Header */}
@@ -250,7 +301,7 @@ function PreMatch({ myTeam, opp, roundIdx, results, tactic, setTactic, onStart, 
   );
 }
 
-function MatchScreen({ myTeam, opp, roundIdx, matchResult, onContinue }) {
+export function MatchScreen({ myTeam, opp, roundIdx, matchResult, onContinue }) {
   const [events, setEvents]     = useState([]);
   const [running, setRunning]   = useState(true);
   const tickerRef               = useRef(null);
@@ -345,7 +396,7 @@ function MatchScreen({ myTeam, opp, roundIdx, matchResult, onContinue }) {
   );
 }
 
-function Champion({ myTeam, results, onRestart }) {
+export function Champion({ myTeam, results, onRestart }) {
   return (
     <div style={{ ...BG, alignItems: "center", justifyContent: "center", textAlign: "center", padding: "0 20px" }}>
       <style>{`@keyframes floatTrophy{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}`}</style>
@@ -363,7 +414,7 @@ function Champion({ myTeam, results, onRestart }) {
   );
 }
 
-function GameOver({ myTeam, roundIdx, matchResult, results, onRestart }) {
+export function GameOver({ myTeam, roundIdx, matchResult, results, onRestart }) {
   return (
     <div style={{ ...BG, alignItems: "center", justifyContent: "center", textAlign: "center", padding: "0 20px" }}>
       <div style={{ fontSize: 60, marginBottom: 12 }}>😔</div>
