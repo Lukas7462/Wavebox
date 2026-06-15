@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WM 2026 Sticker-Tauschbörse</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header>
+    <div class="header-inner">
+      <div class="header-logo">
+        <span class="logo-emoji">⚽</span>
+        <div>
+          <h1>WM 2026 Sticker-Tauschbörse</h1>
+          <p class="header-sub">USA &middot; Kanada &middot; Mexiko</p>
+        </div>
+      </div>
+      <div class="header-stats" id="headerStats">
+        <div class="stat-chip" id="statOwned"><span>0</span> Vorhanden</div>
+        <div class="stat-chip double" id="statDouble"><span>0</span> Doppelte</div>
+        <div class="stat-chip missing" id="statMissing"><span>326</span> Fehlend</div>
+        <div class="stat-progress">
+          <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+          <span id="progressPct">0%</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- NAVIGATION -->
+  <nav class="tab-nav">
+    <button class="tab-btn active" data-tab="album">📖 Mein Album</button>
+    <button class="tab-btn" data-tab="tausch">🔄 Tauschbörse</button>
+    <button class="tab-btn" data-tab="hilfe">❓ Hilfe</button>
+  </nav>
+
+  <!-- ALBUM TAB -->
+  <div class="tab-content active" id="tab-album">
+    <div class="controls">
+      <div class="filter-row">
+        <select id="sectionFilter">
+          <option value="all">Alle Sektionen</option>
+        </select>
+        <select id="statusFilter">
+          <option value="all">Alle Status</option>
+          <option value="missing">Fehlend</option>
+          <option value="owned">Vorhanden</option>
+          <option value="double">Doppelt</option>
+        </select>
+        <input type="text" id="searchInput" placeholder="Sticker suchen (Name / Nr.)…" />
+      </div>
+      <div class="action-row">
+        <button class="btn btn-ghost" id="btnSelectAll">Alle auf Vorhanden</button>
+        <button class="btn btn-ghost danger" id="btnReset">Album zurücksetzen</button>
+        <label class="btn btn-ghost">
+          📥 Album importieren
+          <input type="file" id="importFile" accept=".json" style="display:none" />
+        </label>
+        <button class="btn btn-ghost" id="btnExport">📤 Album exportieren</button>
+      </div>
+    </div>
+
+    <div id="albumContainer"></div>
+  </div>
+
+  <!-- TAUSCHBÖRSE TAB -->
+  <div class="tab-content" id="tab-tausch">
+    <div class="tausch-grid">
+
+      <!-- Deine Doppelten -->
+      <div class="tausch-card">
+        <h2>🟠 Deine Doppelten</h2>
+        <p class="tausch-hint">Diese Sticker kannst du anbieten:</p>
+        <div class="tausch-list" id="tauschDoppelte">
+          <em class="empty-hint">Noch keine doppelten Sticker markiert.</em>
+        </div>
+        <button class="btn btn-primary mt" id="btnCopyDouble">📋 Liste kopieren</button>
+      </div>
+
+      <!-- Deine Wunschliste -->
+      <div class="tausch-card">
+        <h2>🔵 Deine Wunschliste</h2>
+        <p class="tausch-hint">Diese Sticker suchst du:</p>
+        <div class="tausch-list" id="tauschWunsch">
+          <em class="empty-hint">Alle Sticker vorhanden – Glückwunsch!</em>
+        </div>
+        <button class="btn btn-primary mt" id="btnCopyWish">📋 Liste kopieren</button>
+      </div>
+
+    </div>
+
+    <!-- Tauschpartner-Suche -->
+    <div class="tausch-share">
+      <h2>🔗 Tauschpartner finden</h2>
+      <p>Teile deine Tausch-URL mit Freunden – sie sehen sofort, welche Sticker du anbietest und suchst:</p>
+      <div class="share-row">
+        <input type="text" id="shareUrl" readonly />
+        <button class="btn btn-primary" id="btnCopyUrl">Link kopieren</button>
+      </div>
+      <p class="tausch-hint">Der Link speichert deinen aktuellen Sammlungsstand als URL-Hash – kein Konto nötig.</p>
+    </div>
+
+    <!-- Fremde Sammlung laden -->
+    <div class="tausch-share">
+      <h2>👥 Sammlung eines Tauschpartners laden</h2>
+      <p>Füge einen Tausch-Link ein, um zu sehen, welche Sticker ihr gegenseitig tauschen könntet:</p>
+      <div class="share-row">
+        <input type="text" id="partnerUrl" placeholder="https://…#sticker=…" />
+        <button class="btn btn-primary" id="btnLoadPartner">Laden</button>
+      </div>
+      <div id="partnerResult"></div>
+    </div>
+
+  </div>
+
+  <!-- HILFE TAB -->
+  <div class="tab-content" id="tab-hilfe">
+    <div class="hilfe-content">
+      <h2>Wie funktioniert die Tauschbörse?</h2>
+
+      <div class="hilfe-block">
+        <h3>📖 Sticker klicken</h3>
+        <p>Klicke auf einen Sticker, um den Status zu wechseln:</p>
+        <ul>
+          <li><span class="badge missing">Fehlend</span> → du hast diesen Sticker nicht</li>
+          <li><span class="badge owned">Vorhanden</span> → du hast ihn einmal</li>
+          <li><span class="badge double">Doppelt</span> → du hast ihn mehrmals (zum Tauschen!)</li>
+        </ul>
+        <p>Klick noch einmal → zurück auf Fehlend.</p>
+      </div>
+
+      <div class="hilfe-block">
+        <h3>🔄 Tauschen</h3>
+        <p>Im Tab <strong>Tauschbörse</strong> siehst du deine Doppelten und deine Wunschliste.</p>
+        <p>Kopiere den <strong>Tausch-Link</strong> und schicke ihn an Freunde. Sie können die URL in ihr Browser eingeben und sofort sehen, welche Sticker ihr tauschen könntet.</p>
+      </div>
+
+      <div class="hilfe-block">
+        <h3>💾 Speichern</h3>
+        <p>Dein Fortschritt wird automatisch im Browser gespeichert (localStorage). Du kannst dein Album auch als JSON exportieren und später wieder importieren.</p>
+      </div>
+
+      <div class="hilfe-block">
+        <h3>ℹ️ Hinweis</h3>
+        <p>Dies ist eine inoffizielle Fan-App zur WM 2026. Die Stickernummern und -inhalte basieren auf dem bekannten Panini-Schema und sind nicht das offizielle Panini-Album.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast"></div>
+
+  <script src="sticker-data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
