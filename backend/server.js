@@ -5,7 +5,13 @@ import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { execFile } from 'child_process';
+import { execFile, spawn } from 'child_process';
+
+// yt-dlp beim Start auf neueste Version aktualisieren
+execFile('yt-dlp', ['-U'], { timeout: 60000 }, (err, stdout) => {
+  if (err) console.log('yt-dlp update:', err.message?.slice(0, 200));
+  else console.log('yt-dlp update:', stdout?.trim()?.slice(0, 100));
+});
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
