@@ -13,7 +13,7 @@ COPY backend/ .
 COPY --from=frontend-build /frontend/dist ./public
 RUN mkdir -p /data/uploads /data/covers /data/artist-images /data/catalog-covers
 
-# Install ffmpeg, python3, wget + latest yt-dlp binary
+# Install ffmpeg, python3, wget + latest yt-dlp binary (cache-bust: 2026-09-16)
 RUN apk add --no-cache python3 py3-pip ffmpeg wget curl ca-certificates && \
     wget -q "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp" \
          -O /usr/local/bin/yt-dlp && \

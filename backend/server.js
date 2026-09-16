@@ -6,8 +6,12 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { execFile, spawn } from 'child_process';
-import https from 'https';
-import http from 'http';
+
+// yt-dlp beim Start auf neueste Version aktualisieren
+execFile('yt-dlp', ['-U'], { timeout: 60000 }, (err, stdout) => {
+  if (err) console.log('yt-dlp update:', err.message?.slice(0, 200));
+  else console.log('yt-dlp update:', stdout?.trim()?.slice(0, 100));
+});
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -393,8 +397,8 @@ function parseYtItem(i) {
   };
 }
 
-// Titles that indicate non-song content (kept minimal to avoid false positives)
-const NON_MUSIC_PATTERN = /\b(full album|complete album|full concert|live concert|live tour|behind the scenes|making of|documentary|interview|podcast|dj set|megamix|\d+\s*hour|\bvlog\b)\b/i;
+// Titles that indicate non-song content
+const NON_MUSIC_PATTERN = /\b(full album|complete album|full concert|live concert|live tour|official video|music video|musikvideo|video oficial|teaser|trailer|behind the scenes|making of|documentary|interview|podcast|dj set|megamix|nonstop|non-?stop mix|\d+\s*hour|\bvlog\b)\b/i;
 
 // ─── Admin: Direct YouTube Search (for catalog management) ───
 app.get('/api/yt/search', (req, res) => {
@@ -438,7 +442,7 @@ app.get('/api/yt/search-music', async (req, res) => {
     // Step 1: Keep only songs (60s – 600s, no videos/albums/mixes)
     const songsOnly = unique.filter(i => {
       if (!i.duration) return false;
-      if (i.duration < 45 || i.duration > 720) return false;
+      if (i.duration < 60 || i.duration > 600) return false;
       if (NON_MUSIC_PATTERN.test(i.title || '')) return false;
       return true;
     });
@@ -580,33 +584,29 @@ app.delete('/api/tracks/:id/yt', (req, res) => {
 });
 
 // ─── Stream any YouTube audio (no catalog restriction) ───
-// Stream-Endpunkt: gibt Proxy-URL zurück
 app.get('/api/yt/stream/:ytId', (req, res) => {
   const ytId = req.params.ytId;
-  if (!/^[a-zA-Z0-9_-]{6,12}$/.test(ytId)) return res.status(400).json({ error: 'Ungültige Video-ID' });
-  res.json({ streamUrl: `/api/yt/proxy/${ytId}` });
-});
-
-// Audio-Proxy: yt-dlp lädt herunter und konvertiert zu MP3 → Browser kann sofort abspielen
-app.get('/api/yt/proxy/:ytId', (req, res) => {
-  const ytId = req.params.ytId;
-  if (!/^[a-zA-Z0-9_-]{6,12}$/.test(ytId)) return res.status(400).end();
-
-  res.setHeader('Content-Type', 'audio/mpeg');
-
-  const proc = spawn('yt-dlp', [
-    '-f', 'bestaudio',
-    '--no-warnings', '--no-playlist',
-    '--extractor-args', 'youtube:player_client=android',
-    '-x', '--audio-format', 'mp3', '--audio-quality', '5',
-    '-o', '-',
+  if (!/^[a-zA-Z0-9_-]{6,12}$/.test(ytId)) {
+    return res.status(400).json({ error: 'Ungültige Video-ID' });
+  }
+  const cached = streamCache[ytId];
+  if (cached && cached.expires > Date.now()) {
+    return res.json({ streamUrl: cached.url });
+  }
+  execFile('yt-dlp', [
+    '-f', 'bestaudio[ext=m4a]/bestaudio/best',
+    '-g', '--no-warnings', '--no-playlist',
     `https://www.youtube.com/watch?v=${ytId}`
-  ]);
-
-  proc.stdout.pipe(res);
-  proc.stderr.on('data', d => console.error(`[proxy ${ytId}]`, d.toString().slice(0, 200)));
-  proc.on('error', e => { if (!res.headersSent) res.status(502).end(); else res.end(); });
-  req.on('close', () => proc.kill('SIGTERM'));
+  ], { timeout: 20000 }, (err, stdout) => {
+    if (err) {
+      console.error('yt-dlp stream error:', err.message);
+      return res.status(400).json({ error: 'Stream nicht verfügbar' });
+    }
+    const streamUrl = stdout.trim().split('\n')[0];
+    if (!streamUrl) return res.status(400).json({ error: 'Kein Stream-URL' });
+    streamCache[ytId] = { url: streamUrl, expires: Date.now() + 5 * 3600 * 1000 };
+    res.json({ streamUrl });
+  });
 });
 
 app.post('/api/yt/save', (req, res) => {
