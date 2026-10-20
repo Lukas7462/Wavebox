@@ -6,6 +6,8 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { execFile, spawn } from 'child_process';
+import https from 'https';
+import http from 'http';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -584,25 +586,51 @@ app.get('/api/yt/stream/:ytId', (req, res) => {
   res.json({ streamUrl: `/api/yt/proxy/${ytId}` });
 });
 
-// Proxy: yt-dlp streamt WebM/Opus direkt — kein IP-Problem, kein Konvertieren
-app.get('/api/yt/proxy/:ytId', (req, res) => {
+// Versucht nacheinander verschiedene YouTube-Clients um die Audio-URL zu holen
+// TV-Client funktioniert auf Servern am zuverlässigsten ohne po_token
+function tryGetAudioUrl(ytId, clients, idx = 0) {
+  if (idx >= clients.length) return Promise.reject(new Error('all clients failed'));
+  return new Promise((resolve, reject) => {
+    execFile('yt-dlp', [
+      '-f', 'bestaudio[ext=webm]/bestaudio',
+      '-g', '--no-warnings', '--no-playlist',
+      '--extractor-args', `youtube:player_client=${clients[idx]}`,
+      `https://www.youtube.com/watch?v=${ytId}`
+    ], { timeout: 25000 }, (err, stdout) => {
+      const url = stdout?.trim().split('\n')[0];
+      if (!err && url) { console.log(`[stream] ${clients[idx]} OK`); resolve(url); }
+      else { console.log(`[stream] ${clients[idx]} fail: ${err?.message?.slice(0,80)}`); tryGetAudioUrl(ytId, clients, idx + 1).then(resolve).catch(reject); }
+    });
+  });
+}
+
+// Proxy: CDN-URL server-seitig holen + weiterleiten → Browser spricht nie mit YouTube
+app.get('/api/yt/proxy/:ytId', async (req, res) => {
   const ytId = req.params.ytId;
   if (!/^[a-zA-Z0-9_-]{6,12}$/.test(ytId)) return res.status(400).end();
 
-  res.setHeader('Content-Type', 'audio/webm; codecs=opus');
+  let cdnUrl;
+  try {
+    cdnUrl = await tryGetAudioUrl(ytId, ['tv', 'tv_embedded', 'android', 'ios', 'mweb']);
+  } catch (e) {
+    console.error(`[proxy ${ytId}] no client worked`);
+    return res.status(502).json({ error: 'Stream nicht verfügbar' });
+  }
 
-  const proc = spawn('yt-dlp', [
-    '-f', 'bestaudio[ext=webm]/bestaudio[ext=opus]/bestaudio',
-    '--no-warnings', '--no-playlist',
-    '--extractor-args', 'youtube:player_client=android',
-    '-o', '-',
-    `https://www.youtube.com/watch?v=${ytId}`
-  ]);
+  const mod = cdnUrl.startsWith('https') ? https : http;
+  const upHeaders = { 'User-Agent': 'Mozilla/5.0', 'Accept': '*/*' };
+  if (req.headers.range) upHeaders['Range'] = req.headers.range;
 
-  proc.stdout.pipe(res);
-  proc.stderr.on('data', d => console.error(`[proxy ${ytId}]`, d.toString().slice(0, 200)));
-  proc.on('error', e => { if (!res.headersSent) res.status(502).end(); else res.end(); });
-  req.on('close', () => proc.kill('SIGTERM'));
+  const proxyReq = mod.get(cdnUrl, { headers: upHeaders }, proxyRes => {
+    const keep = ['content-type', 'content-length', 'content-range', 'accept-ranges'];
+    const out = {};
+    keep.forEach(h => { if (proxyRes.headers[h]) out[h] = proxyRes.headers[h]; });
+    if (!out['content-type']) out['content-type'] = 'audio/webm';
+    res.writeHead(proxyRes.statusCode, out);
+    proxyRes.pipe(res);
+    req.on('close', () => proxyReq.destroy());
+  });
+  proxyReq.on('error', e => { console.error('[proxy] upstream error:', e.message); if (!res.headersSent) res.status(502).end(); });
 });
 
 app.post('/api/yt/save', (req, res) => {
